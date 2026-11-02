@@ -29,7 +29,7 @@ class LegacyCli(unittest.TestCase):
     def test_both_cli_families_use_the_shared_storage_without_a_generic_frozen_file(self):
         for family in ('e5','mu300'):
             with self.subTest(family=family),tempfile.TemporaryDirectory() as directory:
-                root=Path(directory);module=SimpleNamespace(GUI='old', install=Mock())
+                root=Path(directory).resolve();module=SimpleNamespace(GUI='old', install=Mock())
                 if family=='mu300':
                     (root/'desktop').mkdir();(root/'desktop/manifest.json').write_text('{}')
                 else:
@@ -42,7 +42,7 @@ class LegacyCli(unittest.TestCase):
 
     def test_real_cli_entry_rebinds_an_older_package_before_running_it(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);(root/'desktop').mkdir();(root/'desktop/manifest.json').write_text('{}')
+            root=Path(directory).resolve();(root/'desktop').mkdir();(root/'desktop/manifest.json').write_text('{}')
             (root/'OpenWrt-Installer.py').write_text("def install(*args): pass\ndef android_profile(*args): raise AssertionError('old model list executed')\ndef run_cli(args):\n print('CLI-OK:'+android_profile('Compatible\\nboard','ums9620'))\n return 0\n")
             result=subprocess.run([sys.executable,str(ROOT/'backend_entry.py'),'--cli','--package-root',str(root)],input='yes\n',capture_output=True,text=True,encoding='utf-8',timeout=10)
             self.assertEqual(result.returncode,0,result.stderr)
@@ -51,7 +51,7 @@ class LegacyCli(unittest.TestCase):
     def test_cli_boot_uses_shared_repair_and_nonboot_operations_stay_native(self):
         for family in ('e5','mu300'):
             with self.subTest(family=family),tempfile.TemporaryDirectory() as directory:
-                root=Path(directory);module=SimpleNamespace(install=Mock())
+                root=Path(directory).resolve();module=SimpleNamespace(install=Mock())
                 if family=='mu300':
                     (root/'desktop').mkdir();(root/'desktop/manifest.json').write_text('{}')
                 else:

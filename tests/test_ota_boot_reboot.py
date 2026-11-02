@@ -19,7 +19,7 @@ def control(slot):
 
 class RebootSelection(unittest.TestCase):
     def fixture(self,folder,family,slot):
-        root=Path(folder);android='b' if slot=='a' else 'a'
+        root=Path(folder).resolve();android='b' if slot=='a' else 'a'
         for name in ('run/e5linux','run/mu300','dev/block/by-name','etc/'+family,'etc/e5linux'):
             (root/name).mkdir(parents=True,exist_ok=True)
         (root/('etc/'+family+'/linux-slot')).write_text(slot+'\n')
