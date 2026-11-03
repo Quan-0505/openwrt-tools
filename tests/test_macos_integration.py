@@ -215,7 +215,7 @@ class MacIntegrationTest(unittest.TestCase):
         service = Service(self.package, store, io.StringIO())
         service.dispatch({'protocol':1, 'id':1, 'command':'import', 'params':{'path':str(alias)}})
         loaded = store.load(record['id'])
-        self.assertEqual(Path(loaded['legacy']), store.directory(record['id'])/'legacy/transaction.json')
+        self.assertEqual(Path(loaded['legacy']), (store.directory(record['id'])/'legacy/transaction.json').resolve())
         self.assertEqual(Path(loaded['legacy']).read_text(), '{}')
 
 
