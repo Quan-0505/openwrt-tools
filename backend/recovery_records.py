@@ -27,13 +27,20 @@ def path_relocator(original, target):
             return [relocate(item) for item in value]
         if not isinstance(value, str):
             return value
-        for candidate in roots:
-            try:
-                relative = parser(value).relative_to(candidate)
+        values = [parser(value)]
+        if native and Path(value).is_absolute() and Path(value).exists():
+            values.append(parser(str(Path(value).resolve())))
+        relative = None
+        for item in values:
+            for candidate in roots:
+                try:
+                    relative = item.relative_to(candidate)
+                    break
+                except ValueError:
+                    continue
+            if relative is not None:
                 break
-            except ValueError:
-                continue
-        else:
+        if relative is None:
             return value
         if '..' in relative.parts:
             raise ValueError('Recovery path escapes its record / 恢复路径超出记录目录')

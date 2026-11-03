@@ -1,3 +1,4 @@
+import sys
 """Native boot transactions on ordinary files; no connected device access."""
 import hashlib
 import json
@@ -150,7 +151,7 @@ class NativeInstaller(unittest.TestCase):
             self.assertEqual(boot.native_boot_parts(result['boot'])[1],boot.native_vendor_parts(result['vendor_boot'])[0])
 
 
-@unittest.skipUnless(os.name=='posix','POSIX durable transaction engine')
+@unittest.skipUnless(sys.platform=='linux','Linux xattr durable transaction engine')
 class NativeOTA(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)

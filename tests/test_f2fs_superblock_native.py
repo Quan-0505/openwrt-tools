@@ -1,3 +1,4 @@
+import sys
 """Decode ordinary in-memory files with the real native helper; no device ioctl."""
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from tests.test_online_shrink import sb, checksummed
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@unittest.skipUnless(os.name == 'posix' and shutil.which('cc'), 'POSIX C compiler required')
+@unittest.skipUnless(sys.platform == 'linux' and shutil.which('cc'), 'Linux kernel headers and C compiler required')
 class NativeSuperblocks(unittest.TestCase):
     def test_native_and_host_decode_agree(self):
         with tempfile.TemporaryDirectory(prefix='f2fs-superblocks-') as directory:
