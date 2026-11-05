@@ -48,6 +48,8 @@ python3 tools/build-release.py run --workspace /home/kano/openwrt-build --label 
 固件刷新/热补命令显式设置 OPENWRT_FIRMWARE_SOURCE。installer 本身无需固件源码即可构建；不得用相邻旧仓库文件兜底补缺输入。
 
 
-## 固件包根目录的 APK
+## Android 安装器的打包范围
 
-package_diff.py 的公共收尾步骤调用 package_android.py，固定附带一份 OpenWrt-Tools.apk、docs/GUI-BUILD-android.json 和 docs/ANDROID-INSTALLER.md。完整打包与父仓库的 refresh-installers 都必须保留这些文件及完整校验清单。可用 OPENWRT_GUI_ANDROID_ARTIFACT 显式复用另一检出的已验证 artifacts/android；源码、release 签名记录、ABI/ELF 和文件摘要必须匹配。只改打包胶水不重编未变化的桌面或 APK。
+共享 `package_diff.attach()` 默认仍会校验并附加 `OpenWrt-Tools.apk`、`docs/GUI-BUILD-android.json` 和 `docs/ANDROID-INSTALLER.md`，供公共 installer 产品使用；Android APK 的签名、源码指纹、ABI/ELF 和哈希门禁保持不变。
+
+E5 固件仓库的 `tools/package-diff-studio.py` 显式调用 `attach(..., include_android=False)`，所以 E5 固件 ZIP 和 installer-only 刷新包不带这些 Android 控制安装器文件。该排除不会影响 `extras/android/op-system-switcher.apk`，也不会移除公共 installer 的独立 Android 构建/发布流程。不要为了 E5 固件打包修改签名策略或生成替代签名。

@@ -21,9 +21,10 @@ tool=runpy.run_path(str(TOP/'package_diff.py'))
 
 class DiffPackaging(unittest.TestCase):
     def setUp(self):
-        mock=patch('package_android.attach');mock.start();self.addCleanup(mock.stop)
+        android_patch=patch('package_android.attach');self.android_attach=android_patch.start();self.addCleanup(android_patch.stop)
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup);self.root=Path(temp.name)/'package'
-        (self.root/'docs').mkdir(parents=True);(self.root/'START-HERE.md').write_text('Installer guide\n')
+        (self.root/'docs').mkdir(parents=True);(self.root/'START-HERE.md').write_text(
+            'Installer guide\n\nAndroid: OpenWrt-Tools.apk; see docs/ANDROID-INSTALLER.md.\n',encoding='utf-8')
         self.native={}
         for platform,label,files in [
             ('windows-x64','GUI-BUILD.json',{'OpenWrt-Installer.exe':b'MZ GUI','tools/backend/openwrt-backend.exe':b'MZ runtime','tools/adb.exe':b'adb'}),
@@ -37,14 +38,32 @@ class DiffPackaging(unittest.TestCase):
 
     def test_shared_runtime_and_signed_mac_contents_unchanged(self):
         manifest=tool['attach'](self.root)
+        self.android_attach.assert_called_once_with(self.root)
         for name,raw in self.native.items():self.assertEqual((self.root/name).read_bytes(),raw)
         self.assertEqual((self.root/'OpenWrt-Diff-Studio.exe').read_bytes(),self.native['OpenWrt-Installer.exe'])
         self.assertEqual((self.root/'OpenWrt-Diff-Studio.app/Contents/Info.plist').read_bytes(),b'unchanged signed metadata')
         self.assertTrue((self.root/'docs/DIFF-STUDIO.md').exists())
-        self.assertIn('OpenWrt-Diff-Studio.exe',(self.root/'START-HERE.md').read_text())
+        guide=(self.root/'START-HERE.md').read_text(encoding='utf-8')
+        self.assertIn('OpenWrt-Diff-Studio.exe',guide)
+        self.assertIn('OpenWrt-Tools.apk',guide)
         self.assertNotIn('tools/adb.exe',manifest['files']);self.assertNotIn('tools/macos/adb',manifest['files'])
         self.assertFalse(any(n.startswith('files/') for n in manifest['files']))
         self.assertEqual(list(self.root.rglob('openwrt.ext4.gz')),[self.root/'files/openwrt.ext4.gz'])
+
+    def test_firmware_compatibility_mode_omits_android_installer(self):
+        (self.root/'OpenWrt-Tools.apk').write_bytes(b'stale APK')
+        (self.root/'docs/GUI-BUILD-android.json').write_text('{}')
+        (self.root/'docs/ANDROID-INSTALLER.md').write_text('stale instructions')
+        self.android_attach.reset_mock()
+        manifest=tool['attach'](self.root,include_android=False)
+        self.android_attach.assert_not_called()
+        for name in ('OpenWrt-Tools.apk','docs/GUI-BUILD-android.json','docs/ANDROID-INSTALLER.md'):
+            self.assertFalse((self.root/name).exists(),name)
+        guide=(self.root/'START-HERE.md').read_text(encoding='utf-8')
+        self.assertNotIn('OpenWrt-Tools.apk',guide)
+        self.assertNotIn('docs/ANDROID-INSTALLER.md',guide)
+        self.assertIn('OpenWrt-Diff-Studio.exe',guide)
+        self.assertNotIn('OpenWrt-Tools.apk',manifest['files'])
 
     def test_export_contains_both_updaters_and_no_full_installer_payload(self):
         tool['attach'](self.root);patch=self.root.parent/'test.ota';patch.write_bytes(b'opaque patch fixture')

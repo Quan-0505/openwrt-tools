@@ -70,8 +70,25 @@ def export_standalone(release, output):
     return manifest
 
 
-def attach(package):
+def attach(package, *, include_android=True):
+    """Attach Diff Studio and, by default, the signed Android control app."""
     package=Path(package)
+    if not include_android:
+        # E5 firmware bundles deliberately omit the signed Android control app.
+        # Remove stale copies when refreshing a package in place; the distinct
+        # Android system-switcher under extras/ is not owned by this package.
+        for name in ('OpenWrt-Tools.apk','docs/GUI-BUILD-android.json','docs/ANDROID-INSTALLER.md'):
+            path=package/name
+            if path.is_symlink() or path.is_file():
+                path.unlink()
+            elif path.exists():
+                raise ValueError('Android installer path is not a file: '+name)
+        start=package/'START-HERE.md'
+        if start.is_file():
+            guide=start.read_text(encoding='utf-8')
+            guide='\n'.join(line for line in guide.splitlines()
+                if 'OpenWrt-Tools.apk' not in line and 'docs/ANDROID-INSTALLER.md' not in line).strip('\n')+'\n'
+            start.write_text(guide,encoding='utf-8',newline='\n')
     sys.path.insert(0,str(TOP))
     from package_gui import sources
     current=sources();native={};owned=set()
@@ -111,15 +128,17 @@ def attach(package):
     (package/'diff-tool.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')
     guide=(TOP/'docs/DIFF-STUDIO.zh-CN.md').read_text(encoding='utf-8')
     (package/'docs/DIFF-STUDIO.md').write_text(guide,encoding='utf-8',newline='\n')
-    from package_android import attach as attach_android
-    attach_android(package)
+    if include_android:
+        from package_android import attach as attach_android
+        attach_android(package)
     start=package/'START-HERE.md'
     with start.open('a',encoding='utf-8',newline='\n') as stream:
         stream.write('\n## Diff Studio / 差异更新工具\n\n'
-                     'Windows: **OpenWrt-Diff-Studio.exe**. Apple Silicon: **OpenWrt-Diff-Studio.app**.\n\n'
-                     'Android: **OpenWrt-Tools.apk**（本目录直接安装 / install directly from this directory）. '
-                     '[Android 使用说明 / guide](docs/ANDROID-INSTALLER.md).\n\n'
-                     '完整解压后打开对应程序；与安装器共用 tools 目录，请勿单独移动 EXE 或 APP。'
+                     'Windows: **OpenWrt-Diff-Studio.exe**. Apple Silicon: **OpenWrt-Diff-Studio.app**.\n\n')
+        if include_android:
+            stream.write('Android: **OpenWrt-Tools.apk**（本目录直接安装 / install directly from this directory）. '
+                         '[Android 使用说明 / guide](docs/ANDROID-INSTALLER.md).\n\n')
+        stream.write('完整解压后打开对应程序；与安装器共用 tools 目录，请勿单独移动 EXE 或 APP。'
                      '选择旧、新完整包生成更新补丁；操作说明见 [DIFF-STUDIO.md](docs/DIFF-STUDIO.md)。\n')
     return manifest
 
